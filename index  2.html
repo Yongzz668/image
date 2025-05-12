@@ -1,0 +1,1066 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Docker构建镜像容器 yantaocheng/emby-nginx & Emby 媒体服务器搭建</title>
+    <style>
+        /* 基础样式 - 暗色模式 (默认) */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            color: #1d1d1f;
+            background: #2a2f3a;
+            line-height: 1.6;
+            max-width: 100%;
+            margin: 0 auto;
+            padding: 10px;
+            transition: background 0.3s, color 0.3s;
+        }
+
+        /* 亮色模式 */
+        body.light-mode {
+            background: #f5f7fa;
+            color: #333;
+        }
+
+        /* 星空暗夜模式 */
+        body.starry-mode {
+            background: #121212 url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 800 800"><g fill="rgba(255,255,255,0.15)"><circle cx="50" cy="50" r="1"/><circle cx="150" cy="150" r="1"/><circle cx="250" cy="50" r="1.5"/><circle cx="350" cy="150" r="1"/><circle cx="450" cy="50" r="1"/><circle cx="550" cy="150" r="1.5"/><circle cx="650" cy="50" r="1"/><circle cx="750" cy="150" r="1"/><circle cx="50" cy="250" r="1.5"/><circle cx="150" cy="350" r="1"/><circle cx="250" cy="250" r="1"/><circle cx="350" cy="350" r="1.5"/><circle cx="450" cy="250" r="1"/><circle cx="550" cy="350" r="1"/><circle cx="650" cy="250" r="1.5"/><circle cx="750" cy="350" r="1"/><circle cx="50" cy="450" r="1"/><circle cx="150" cy="550" r="1.5"/><circle cx="250" cy="450" r="1"/><circle cx="350" cy="550" r="1"/><circle cx="450" cy="450" r="1.5"/><circle cx="550" cy="550" r="1"/><circle cx="650" cy="450" r="1"/><circle cx="750" cy="550" r="1.5"/><circle cx="50" cy="650" r="1"/><circle cx="150" cy="750" r="1"/><circle cx="250" cy="650" r="1.5"/><circle cx="350" cy="750" r="1"/><circle cx="450" cy="650" r="1"/><circle cx="550" cy="750" r="1.5"/><circle cx="650" cy="650" r="1"/><circle cx="750" cy="750" r="1"/></g></svg>');
+            color: #d0d0d0;
+        }
+
+        /* 导航栏样式 */
+        .navbar {
+            background: #3a3f4a;
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            margin-bottom: 20px;
+            border-radius: 8px;
+        }
+
+        .light-mode .navbar {
+            background: #ffffff;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .starry-mode .navbar {
+            background: #1e1e1e;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+        }
+
+        .navbar a {
+            color: #4ecdc4;
+            font-size: 16px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+        }
+
+        .navbar a:hover {
+            text-decoration: underline;
+        }
+
+        .light-mode .navbar a {
+            color: #00bcd4;
+        }
+
+        .starry-mode .navbar a {
+            color: #616161;
+        }
+
+        .navbar-logo {
+            height: 40px;
+            width: auto;
+        }
+
+        /* 其余样式 */
+        h1 {
+            color: #1d1d1f;
+            border-bottom: 2px solid #4ecdc4;
+            padding-bottom: 8px;
+            text-align: center;
+            font-size: 24px;
+        }
+
+        h2 {
+            color: #4ecdc4;
+            margin-top: 20px;
+            font-size: 18px;
+        }
+
+        .light-mode h1, .light-mode h2 {
+            color: #00bcd4;
+            border-bottom-color: #00bcd4;
+        }
+
+        .starry-mode h1, .starry-mode h2 {
+            color: #616161;
+            border-bottom-color: #616161;
+        }
+
+        .container {
+            background: #3a3f4a;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            margin-bottom: 20px;
+        }
+
+        .light-mode .container {
+            background: #ffffff;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .starry-mode .container {
+            background: #1e1e1e;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+        }
+
+        .step {
+            background: #454b57;
+            border-left: 4px solid #4ecdc4;
+            padding: 10px;
+            margin: 15px 0;
+            border-radius: 0 4px 4px 0;
+        }
+
+        .light-mode .step {
+            background: #e0f7fa;
+            border-left-color: #00bcd4;
+        }
+
+        .starry-mode .step {
+            background: #2d2d2d;
+            border-left-color: #616161;
+        }
+
+        .step-img {
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #555;
+            border-radius: 4px;
+            margin: 10px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            display: block;
+        }
+
+        .light-mode .step-img {
+            border-color: #ddd;
+        }
+
+        .starry-mode .step-img {
+            border-color: #777;
+        }
+
+        code {
+            background: #454b57;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-family: Consolas, Monaco, 'Andale Mono', monospace;
+            color: #d0d0d0;
+        }
+
+        .light-mode code {
+            background: #e0e0e0;
+            color: #333;
+        }
+
+        .starry-mode code {
+            background: #2d2d2d;
+            color: #d0d0d0;
+        }
+
+        .instructions {
+            background: #454b57;
+            border-left: 4px solid #4ecdc4;
+            padding: 10px;
+            margin: 15px 0;
+            border-radius: 0 4px 4px 0;
+        }
+
+        .light-mode .instructions {
+            background: #e0f7fa;
+            border-left-color: #00bcd4;
+        }
+
+        .starry-mode .instructions {
+            background: #2d2d2d;
+            border-left-color: #616161;
+        }
+
+        ol {
+            padding-left: 20px;
+        }
+
+        li {
+            margin-bottom: 8px;
+        }
+
+        .highlight {
+            font-weight: bold;
+            color: #ff6b6b;
+        }
+
+        .warning {
+            background: #4a3f4a;
+            border-left: 4px solid #ff6b6b;
+            padding: 10px;
+            margin: 15px 0;
+            border-radius: 0 4px 4px 0;
+        }
+
+        .light-mode .warning {
+            background: #ffebee;
+            border-left-color: #e57373;
+        }
+
+        .starry-mode .warning {
+            background: #2d1e1e;
+            border-left-color: #ff6b6b;
+        }
+
+        .note {
+            background: #4a4a3f;
+            border-left: 4px solid #ffd600;
+            padding: 10px;
+            margin: 15px 0;
+            border-radius: 0 4px 4px 0;
+        }
+
+        .light-mode .note {
+            background: #fffde7;
+            border-left-color: #ffb300;
+        }
+
+        .starry-mode .note {
+            background: #3f3f2d;
+            border-left-color: #ffd600;
+        }
+
+        .attention {
+            font-weight: bold;
+            margin: 10px 0;
+        }
+
+        .code-block {
+            background: #454b57;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: Consolas, Monaco, 'Andale Mono', monospace;
+            overflow-x: auto;
+            margin: 10px 0;
+            position: relative;
+            color: #d0d0d0;
+        }
+
+        .light-mode .code-block {
+            background: #e0e0e0;
+            color: #333;
+        }
+
+        .starry-mode .code-block {
+            background: #2d2d2d;
+            color: #d0d0d0;
+        }
+
+        .success {
+            background: #3f4a4a;
+            border-left: 4px solid #4caf50;
+            padding: 10px;
+            margin: 15px 0;
+        }
+
+        .light-mode .success {
+            background: #e8f5e9;
+            border-left-color: #4caf50;
+        }
+
+        .starry-mode .success {
+            background: #2d3f2d;
+            border-left-color: #4caf50;
+        }
+
+        a {
+            color: #4ecdc4;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        .light-mode a {
+            color: #00bcd4;
+        }
+
+        .starry-mode a {
+            color: #616161;
+        }
+
+        .copy-btn {
+            position: absolute;
+            right: 10px;
+            top: 10px;
+            background: #4ecdc4;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        .light-mode .copy-btn {
+            background: #00bcd4;
+        }
+
+        .starry-mode .copy-btn {
+            background: #616161;
+        }
+
+        .inline-copy-btn {
+            display: inline-block;
+            background: #4ecdc4;
+            color: white;
+            border: none;
+            padding: 2px 6px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-left: 5px;
+            vertical-align: middle;
+        }
+
+        .light-mode .inline-copy-btn {
+            background: #00bcd4;
+        }
+
+        .starry-mode .inline-copy-btn {
+            background: #616161;
+        }
+
+        /* 主题切换按钮 */
+        .theme-switcher {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: #4ecdc4;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            border: none;
+            font-size: 20px;
+            transition: all 0.3s;
+        }
+
+        .light-mode .theme-switcher {
+            background: #00bcd4;
+        }
+
+        .starry-mode .theme-switcher {
+            background: #616161;
+        }
+    </style>
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar">
+        <a href="https://en.hqs.dpdns.org">
+            ← 返回首页
+        </a>
+        <div>
+            <a href="https://cd2.hqs.dpdns.org" style="margin-right: 20px;">副教程</a>
+            <img src="https://fastly.jsdelivr.net/gh/Yongzz668/image@main/assets/IMG_8885.jpeg" alt="Logo" class="navbar-logo">
+        </div>
+    </nav>
+
+    <!-- 主题切换按钮 -->
+    <button id="themeToggle" class="theme-switcher">🌙</button>
+
+    <!-- 原始页面内容 -->
+    <div class="container">
+        <h1>Docker 运行命令</h1>
+        <div class="code-block">
+            <button class="copy-btn" onclick="copyCode(this)">复制</button>
+            <pre>docker run -d \
+  --name emby-nginx \
+  -p 7001:7001 \
+  -p 8021:8001 \
+  -p 9527:9527 \
+  -p 5002:5002 \
+  -v /volume1/emby-nginx/strm:/strm \
+  -v /volume1/emby-nginx/backup:/app/backup \
+  --network bridge \
+  --restart unless-stopped \
+  --privileged \
+  yantaocheng/emby-nginx:latest</pre>
+        </div>
+    </div>
+
+    <div class="container">
+        <h1>Docker Compose 配置</h1>
+        <div class="code-block">
+            <button class="copy-btn" onclick="copyCode(this)">复制</button>
+            <pre>version: '3.8'
+
+services:
+  emby-nginx:
+    image: yantaocheng/emby-nginx:latest
+    container_name: emby-nginx
+    ports:
+      - "7001:7001"
+      - "8021:8001"
+      - "9527:9527"
+      - "5002:5002"
+    volumes:
+      - /volume1/emby-nginx/strm:/strm
+      - /volume1/emby-nginx/backup:/app/backup
+    network_mode: bridge
+    restart: unless-stopped
+    privileged: true</pre>
+        </div>
+    </div>
+
+    <div class="container">
+        <h1>镜像仓库拉取 yantaocheng/emby-nginx</h1>
+        <p><strong>适用场景：</strong>群晖NAS</p>
+
+        <div class="step">
+            <h2>步骤1：搜索镜像</h2>
+            <img src="https://fastly.jsdelivr.net/gh/Yongzz668/image@main/教程图/%E7%BE%A4%E6%99%96%E6%9E%84%E5%BB%BA1.jpeg" alt="群晖Docker搜索镜像" class="step-img">
+            <ol>
+                <li>打开群晖Container Manager，进入「镜像仓库」</li>
+                <li>搜索栏输入 <code>yantaocheng/emby-nginx:latest</code></li>
+                <li>双击目标镜像开始下载</li>
+            </ol>
+        </div>
+
+        <div class="step">
+            <h2>步骤2：创建容器</h2>
+            <img src="https://fastly.jsdelivr.net/gh/Yongzz668/image@main/教程图/%E7%BE%A4%E6%99%96%E6%9E%84%E5%BB%BA2.jpeg" alt="群晖Docker创建容器" class="step-img">
+            <ol>
+                <li>下载完成后，进入「映像」找到该镜像</li>
+                <li>点击「运行」→ 按图中红圈中填写「文件夹要提前新建好」</li>
+            </ol>
+        </div>
+
+        <div class="step">
+            <h2>步骤3：运行容器</h2>
+            <img src="https://fastly.jsdelivr.net/gh/Yongzz668/image@main/教程图/%E7%BE%A4%E6%99%96%E6%9E%84%E5%BB%BA3.jpeg" alt="群晖Docker运行容器" class="step-img">
+            <ol>
+                <li>勾选「<span class="highlight">使用最高权限执行容器</span>」</li>
+                <li>点击「bridge网络」→「下一步」→「立即运行容器」</li>
+                <li>容器状态显示"运行中"即成功</li>
+            </ol>
+        </div>
+
+        <div class="instructions">
+            <p>1. 在浏览器地址栏输入: <strong>本地IP:9527</strong> 进入管理后台</p>
+            <img src="https://fastly.jsdelivr.net/gh/Yongzz668/image@main/教程图/%E7%99%BB%E9%99%86%E9%A1%B5.jpeg" alt="Emby-Nginx登录页面" class="step-img">
+            <p>2. 输入默认用户名<code>admin</code>和密码<code>admin</code>登录后台</p>
+        </div>
+    </div>
+
+    <div class="container">
+        <h1>Emby-Nginx使用教程</h1>
+        <div class="note">
+            <p>emby-nginx的教程跳转，请先学习教程一步一步对应看清楚。特别是首次配置的时候</p>
+        </div>
+
+        <div class="step">
+            <h2>右上角功能区域</h2>
+            <img src="https://fastly.jsdelivr.net/gh/Yongzz668/image@main/教程图/%E5%8F%B3%E4%B8%8A%E8%A7%92.jpeg" alt="emby-nginx右上角功能区域" class="step-img">
+            <ol>
+                <li><strong>版本号</strong>，点击版本号可看到更新日志。(最新版本2.4.28）</li>
+                <li><strong>点开日志</strong>，实时的运行记录，strm生成记录，报错记录都在这里显示。有问题请查看这里，不懂请截图这里，提问 为什么？</li>
+                <li><strong>Nginx重启</strong>，点击重启反代。</li>
+            </ol>
+        </div>
+
+        <div class="step">
+            <h2>用户激活流程</h2>
+            <img src="https://fastly.jsdelivr.net/gh/Yongzz668/image@main/教程图/%E7%94%A8%E6%88%B7%E4%BF%A1%E6%81%AF.jpeg" alt="emby-nginx用户信息" class="step-img">
+            <ol>
+                <li>点<strong>用户信息</strong>。</li>
+                <li>复制<strong>UUID</strong>发送给邮箱 <code><a href="/cdn-cgi/l/email-protection#1a637b746e7b7579727f747d5a756f6e7675757134797577"><span class="__cf_email__" data-cfemail="b0c9d1dec4d1dfd3d8d5ded7f0dfc5c4dcdfdfdb9ed3dfdd">[email&#160;protected]</span></a></code> 关注微信公众号自助购买，给公众号 《emby-nginx助手》发送:购买激活码（下方有公众号二维码） 会有自助购买流程。（推荐搭建成功的兄弟自助购买，激活码回复更快）</li>
+                <li>收到的激活码粘贴进去。</li>
+                <li>验证激活，激活码价格100元，同一个激活码可以重复激活原来设备的uuid, 后期换设备可以用第一次发uuid的邮箱再次免费索取，终身制。</li>
+            </ol>
+            <img src="https://fastly.jsdelivr.net/gh/Yongzz668/image@main/教程图/%E5%85%AC%E4%BC%97%E5%8F%B7%E4%BA%8C%E7%BB%B4%E7%A0%81.jpeg" alt="emby-nginx公众号二维码" class="step-img">
+        </div>
+
+        <div class="warning">
+            <p><strong>重要说明：</strong></p>
+            <p>有一天的免激活试用时间，所有功能不会限制。（试用期间不要编辑容器，要不然uuid会变 免激活时间就没有了，就要删除config文件夹和容器重新拉取试用了）</p>
+            <p>实在不会配置或者懒得自己配置可请购买人远程代搭建 远程服务费50元，搭建至播通直链为止。</p>
+            <p class="highlight">注：根据上述激活码可在同个设备上重复激活的特性，且激活码无法远程作废或注销等操作，属于真正意义上的买断制，所以购买后概不退款，请务必考虑清楚后再购买！</p>
+        </div>
+    </div>
+
+    <div class="container">
+        <h1>Emby-Nginx功能配置教程</h1>
+
+        <div class="step">
+            <h2>115网盘cookie配置</h2>
+            <img src="https://fastly.jsdelivr.net/gh/Yongzz668/image@main/教程图/cookie%E8%8E%B7%E5%8F%96.jpeg" alt="115网盘cookie获取" class="step-img">
+            <ol>
+                <li>点<strong>cookie配置</strong></li>
+                <li>扫码获取cookie值</li>
+                <li>生成二维码 并选端用手机app扫码（2秒后会获取到cookie值）</li>
+                <li>添加cookie（会自动创建不用改动）</li>
+                <li>一定记得<strong class="highlight">保存配置</strong></li>
+            </ol>
+            <div class="note">
+                <p><strong>注意：</strong>第二个cookie模块也是这样操作</p>
+                <p>添加两个cookie模块可后台被系统轮流调用，避免一切风控可能。<strong class="highlight">强烈推荐</strong></p>
+            </div>
+        </div>
+
+        <div class="step">
+            <h2>Emby服务器配置</h2>
+            <img src="https://fastly.jsdelivr.net/gh/Yongzz668/image@main/教程图/emby%E6%9C%8D%E5%8A%A1%E5%99%A8.jpeg" alt="Emby服务器配置" class="step-img">
+            <ol>
+                <li>点<strong>服务器配置</strong> 选<strong>emby服务器</strong></li>
+                <li>如图填写emby的局域网地址在（附图1）的红圈里这复制过来
+                    <img src="https://fastly.jsdelivr.net/gh/Yongzz668/image@main/教程图/emby%E5%9C%B0%E5%9D%80.jpeg" alt="Emby地址" class="step-img">
+                </li>
+                <li>新建emby的api密钥在（附图2）这新建复制过来粘贴进去
+                    <img src="https://fastly.jsdelivr.net/gh/Yongzz668/image@main/教程图/api%E5%AF%86%E9%92%A5.jpeg" alt="API密钥" class="step-img">
+                </li>
+                <li>点<strong class="highlight">保存配置</strong>（服务器就开始反代了）</li>
+            </ol>
+            <div class="note">
+                <p>仪表盘的饼状图（饼状图显示需要在emby插件商店安装 <strong>Playback Reporting</strong>）显示有变化了</p>
+                <img src="https://fastly.jsdelivr.net/gh/Yongzz668/image@main/教程图/报告插件.jpeg" alt="Playback Reporting插件安装界面" class="step-img">
+                <img src="https://fastly.jsdelivr.net/gh/Yongzz668/image@main/教程图/影音报告.jpeg" alt="Playback Reporting插件效果" class="step-img">
+            </div>
+            <div class="warning">
+                <p><strong>多Emby服务器配置：</strong></p>
+                <p>有第二个emby，第三个emby点 <strong>+号</strong> 继续同样配置但emby-nginx直链播放端口要对应增加7002和7003端口号</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <h1>飞牛反代配置教程</h1>
+
+        <div class="step">
+            <h2>飞牛服务器配置</h2>
+            <img src="https://fastly.jsdelivr.net/gh/Yongzz668/image@main/教程图/feiniupeizhi.jpeg" alt="飞牛服务器配置" class="step-img">
+            <ol>
+                <li>选择<strong>飞牛服务器</strong></li>
+                <li>填飞牛服务器本地ip：<strong>8005</strong></li>
+                <li>选择<strong>cookie模块</strong></li>
+                <li>由于飞牛还不能支持strm文件，先在飞牛os上登陆115网盘，通过飞牛的远程挂载 把115根目录挂载到本地 那实际地址例如:
+                    <br><code>/vol02/1000-1-*******</code></li>
+                <li>点<strong class="highlight">保存配置</strong>（就开始给飞牛反代了）</li>
+            </ol>
+            <div class="warning">
+                <p><strong>注：</strong></p>
+                <ul>
+                    <li>飞牛直链播放端口是<strong>8021</strong> vidhub或infuse挂载填的端口号就是8021（网页端飞牛播不了）</li>
+                    <li>反代飞牛影视的好处就是不占用家里的上传带宽，而且看大体积视频不卡顿</li>
+                    <li>（但ISO圆盘电影飞牛要在本地解码所以不能享受直链播放，另外开启飞牛影视转码播放也不能直链播放，因为要在本地转码）</li>
+                </ul>
+            </div>
+            <p>直链播放成功如下图：</p>
+            <img src="https://fastly.jsdelivr.net/gh/Yongzz668/image@main/教程图/feiniuchenggong.jpeg" alt="飞牛直链播放成功" class="step-img">
+        </div>
+    </div>
+
+    <div class="container">
+        <h1>STRM生成配置教程</h1>
+        <div class="warning">
+            <p><strong>注意：</strong>多个emby容器要对应选对应名称的cookie模块来设置strm生成模块</p>
+        </div>
+
+        <div class="step">
+            <h2>添加本地STRM（给emby挂载的）</h2>
+            <img src="https://fastly.jsdelivr.net/gh/Yongzz668/image@main/教程图/%E6%9C%AC%E5%9C%B0strm.jpeg" alt="本地STRM配置" class="step-img">
+            <ol>
+                <li>选<strong>strm生成</strong></li>
+                <li>添加<strong>本地strm</strong></li>
+                <li>cookie模块默认别动</li>
+                <li><code>/</code> 意思就是整个115网盘都监控生成
+                    <br>如只想生成特定文件夹就/根目录下的某个文件夹
+                    <br>例如：<code>/影视库</code></li>
+                <li>默认别改动，生成的strm文件都保存这个本地文件夹里</li>
+                <li>路径前缀 填写 <code>http://本地ip:9527</code>
+                    <br>例如: <code>http://192.168.50.178:9527</code></li>
+                <li>元数据下载选择，建议选<strong>否</strong>。除了字幕以外，图片和nfo没必要且一个一个下载很慢,emby自己刮削还更快</li>
+                <li>一定记得点 <strong class="highlight">保存配置</strong></li>
+                <li>立即生成strm</li>
+                <li>可以看到日志里显示生成strm</li>
+            </ol>
+            <div class="note">
+                <p>全部生成完毕strm后可以打开实时网盘监控，有新增移动删除网盘内文件都会被监控到对应生成删除strm文件</p>
+            </div>
+        </div>
+
+        <div class="step">
+            <h2>添加外网STRM（给infuse vidhub 芝杜等通过webdav挂载的）</h2>
+            <img src="https://fastly.jsdelivr.net/gh/Yongzz668/image@main/教程图/%E5%A4%96%E7%BD%91strm.jpeg" alt="外网STRM配置" class="step-img">
+            <ol>
+                <li>选<strong>strm生成</strong></li>
+                <li>添加<strong>外网strm</strong></li>
+                <li>选cookie名称模块</li>
+                <li><code>/</code> 代表生成整个115网盘的strm文件，
+                    <br>单个文件夹例如：<code>/媒体文件夹</code></li>
+                <li>别改动 外网strm文件保存文件夹，
+                    <br>可用wabdav挂载给infuse vidhub 芝杜播放机等读取播放。端口号:<strong>5002</strong> 挂载方式如vidhub看（附图1）</li>
+                <li>填你的emby-nginx外网访问地址和端口</li>
+                <li>一定记得点 <strong class="highlight">保存配置</strong></li>
+                <li>立即生成strm</li>
+                <li>日志有生成记录</li>
+            </ol>
+            <img src="https://fastly.jsdelivr.net/gh/Yongzz668/image@main/教程图/webdav%E6%8C%82%E8%BD%BD.jpeg" alt="WebDAV挂载示例" class="step-img">
+            <div class="note">
+                <p>infuse 芝杜 senplayer forward humhub也是这样webdav挂载的</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <h1>AList配置教程</h1>
+        <div class="warning">
+            <p><strong>注意：</strong>设置alist 添加aliststrm模块(这是针对115网盘以外其他网盘的，115网盘用户可跳过学习)</p>
+        </div>
+
+        <div class="note">
+            <p>从来没接触过alist的请看<a href="https://b23.tv/WaiEFVt" target="_blank">视频教程</a>必须先学会把网盘挂载到alist</p>
+        </div>
+
+        <div class="step">
+            <h2>拉取安装AList命令（群晖）</h2>
+            <div class="code-block">
+                <button class="copy-btn" onclick="copyCode(this)">复制</button>
+                <pre>docker run -d \
+  --restart=always \
+  -v /etc/alist:/opt/alist/data \
+  -p 5244:5244 \
+  -e PUID=0 \
+  -e PGID=0 \
+  -e UMASK=022 \
+  --name="alist" \
+  xhofe/alist:latest</pre>
+            </div>
+            <p>alist的密码默认是随机生成的，要在docker容器日志里找到随机密码 登录进alist界面 然后改成自己常用的密码。</p>
+            <p>要先提前设置好alist， alist的挂载请在<a href="https://alist.nn.ci/zh/guide/" target="_blank">alist官方文档</a>网页学习，或者通过<a href="https://b23.tv/WaiEFVt" target="_blank">b站视频教程</a>去学习。</p>
+        </div>
+
+        <div class="step">
+            <h2>AList网盘挂载设置</h2>
+            <img src="https://fastly.jsdelivr.net/gh/Yongzz668/image@main/教程图/alist%E6%8C%82%E8%BD%BD%E7%BD%91%E7%9B%98.jpeg" alt="AList挂载网盘" class="step-img">
+            <img src="https://fastly.jsdelivr.net/gh/Yongzz668/image@main/教程图/alist%E5%85%B3%E7%AD%BE%E5%90%8D.jpeg" alt="AList关闭签名" class="step-img">
+            <ol>
+                <li>点 <strong>存储</strong></li>
+                <li>选择要挂载的网盘驱动</li>
+                <li>编辑网盘挂载路径名称，这和接下来要设置的aliststrm模块中 [alist生成路径] 填空中的名称要绝对一致</li>
+                <li>alist对网盘默认缓存时间是30，可以改成1 （改完后可以最快刷新到新转存变更的文件）</li>
+                <li>默认选择 <strong>302重定向</strong> （一定要302重定向的网盘才能反代直链播放，否则占用本地带宽流量，速度很慢）</li>
+                <li><strong>启用签名</strong> 一定不能打开，否则会被阻断无法生成strm文件</li>
+                <li>部分网盘填 用户名和密码，部分网盘填token等
+                    （按照<a href="https://alist.nn.ci/zh/guide/" target="_blank">alist官方文档</a>来）
+                    然后点 <strong>保存</strong>，点主页进去看看挂载成功了没</li>
+                <li>进设置 选择 <strong>全局</strong></li>
+                <li><strong>签名所有</strong> 一定不能打开，否则会被阻断无法生成strm文件</li>
+                <li><strong>保存</strong></li>
+            </ol>
+            <div class="warning">
+                <p>AList设置部分已经完毕，所有网盘都按照<a href="https://alist.nn.ci/zh/guide/" target="_blank">alist文档</a>教程来挂载，重要的是:两处签名 要关闭</p>
+            </div>
+        </div>
+
+        <div class="step">
+            <h2>设置AList的Cookie模块</h2>
+            <img src="https://fastly.jsdelivr.net/gh/Yongzz668/image@main/教程图/alistcookie.jpeg" alt="AList Cookie配置" class="step-img">
+            <ol>
+                <li>点 <strong>cookie配置</strong></li>
+                <li>点 <strong>添加cookie</strong></li>
+                <li>选 <strong>alist</strong></li>
+                <li>填写 alist内网管理地址 <code>http://你的本地ip:5244</code> 和 alist的登录账号密码
+                    （如果用域名转发alist外网访问或者域名反代外网访问了 也可填外网访问的alist地址，但警告：这可能会泄露你的alist外网地址的风险）</li>
+                <li><strong>保存配置</strong></li>
+            </ol>
+        </div>
+
+        <div class="step">
+            <h2>生成AList STRM</h2>
+            <img src="https://fastly.jsdelivr.net/gh/Yongzz668/image@main/教程图/ailststrm.jpeg" alt="AList STRM生成" class="step-img">
+            <ol>
+                <li>点 <strong>strm生成</strong></li>
+                <li>点 <strong>添加aliststrm</strong></li>
+                <li>选 <strong>alist</strong></li>
+                <li><strong>alist生成路径</strong> 必须和alist挂载网盘那 填的挂载路径 绝对一致</li>
+                <li><strong>本地保存路径</strong> 别改动</li>
+                <li>alist的网盘做不到实时监控 所以要填定时规则，
+                    <br>例如每小时一次的定时规则填：<code>0 * * * *</code><button class="inline-copy-btn" onclick="copyCode(this)">复制</button>
+                    <br>例如每六小时一次定时规则填: <code>0 */6 * * *</code><button class="inline-copy-btn" onclick="copyCode(this)">复制</button></li>
+                <li><strong>元数据下载项</strong> 看需要，建议选 <strong>否</strong></li>
+                <li>一定要<strong>保存配置</strong></li>
+                <li>其他302重定向网盘同样设置（如黄圈中的 阿里云盘）</li>
+                <li><strong>立即生成strm</strong>（可以右上角看生成日志如 附图1+附图2 代表正在生成）</li>
+            </ol>
+            <img src="https://fastly.jsdelivr.net/gh/Yongzz668/image@main/教程图/alist%E9%99%84%E5%9B%BE1.jpeg" alt="AList生成日志1" class="step-img">
+            <img src="https://fastly.jsdelivr.net/gh/Yongzz668/image@main/教程图/alist%E9%99%84%E5%9B%BE2.jpeg" alt="AList生成日志2" class="step-img">
+        </div>
+    </div>
+
+    <div class="container">
+        <h1>Emby-Nginx 工具配置教程</h1>
+
+        <div class="step">
+            <h2>Emby封面图生成</h2>
+            <img src="https://fastly.jsdelivr.net/gh/Yongzz668/image@main/教程图/%E5%B0%81%E9%9D%A2%E7%94%9F%E6%88%90%E5%B7%A5%E5%85%B7.jpeg" alt="封面生成工具" class="step-img">
+            <ol>
+                <li>点<strong>工具</strong></li>
+                <li>点<strong>emby封面图生成</strong></li>
+                <li>选择对应的emby服务器</li>
+                <li>生成</li>
+                <li>稍等片刻就生成成功了（可以转到emby上看生成的封面图了）</li>
+            </ol>
+            <div class="note">
+                <p>绿圈中有包含的都会生成对应的封面图，某些文件夹你不想生成就❌掉就行。</p>
+            </div>
+        </div>
+
+        <div class="step">
+            <h2>STRM文件修改</h2>
+            <img src="https://fastly.jsdelivr.net/gh/Yongzz668/image@main/教程图/%E5%B7%A5%E5%85%B7strm%E6%96%87%E4%BB%B6%E4%BF%AE%E6%94%B9.jpeg" alt="STRM文件修改工具" class="step-img">
+            <ol>
+                <li>选择直接删除本地保存的strm文件夹里的所有文件或者修改strm的文件内容</li>
+                <li>删除strm本地文件夹就可以对应填你本地保存的路径了 如：<code>strm/local</code> <code>strm/online</code> <code>strm/ailst</code></li>
+            </ol>
+            <div class="warning">
+                <p>当你生成strm的时候发现填写错了路径前缀导致不能播放就能用到此功能</p>
+            </div>
+        </div>
+
+        <div class="step">
+            <h2>消息通知</h2>
+            <img src="https://fastly.jsdelivr.net/gh/Yongzz668/image@main/教程图/%E6%B6%88%E6%81%AF%E9%80%9A%E7%9F%A5.jpeg" alt="消息通知配置" class="step-img">
+            <ol>
+                <li>点<strong>消息通知</strong></li>
+                <li>选择通知渠道，推荐企业微信机器人（创建机器人视频方法）</li>
+                <li>粘贴企业微信机器人的webhook地址。（地址附图1）
+                    <img src="https://fastly.jsdelivr.net/gh/Yongzz668/image@main/教程图/%E6%9C%BA%E5%99%A8%E4%BA%BA%E5%9C%B0%E5%9D%80.jpeg" alt="机器人地址" class="step-img">
+                </li>
+                <li>一定要记得点 <strong class="highlight">保存</strong></li>
+                <li>测试一下能不能收到测试通知</li>
+            </ol>
+        </div>
+
+        <div class="step">
+            <h2>转发Emby通知</h2>
+            <img src="https://fastly.jsdelivr.net/gh/Yongzz668/image@main/教程图/emby%E9%80%9A%E7%9F%A5.jpeg" alt="Emby通知配置" class="step-img">
+            <img src="https://fastly.jsdelivr.net/gh/Yongzz668/image@main/教程图/%E5%8B%BE%E9%80%89emby%E9%80%9A%E7%9F%A5.jpeg" alt="转发Emby通知配置" class="step-img">
+            <ol>
+                <li>点 <strong>通知</strong></li>
+                <li>取个名称</li>
+                <li>输入通知返回地址 <code>http://本地ip:9527/api/v1/webhook</code></li>
+                <li>选择 <strong>application/json</strong></li>
+                <li>发送测试看通不通</li>
+            </ol>
+            <div class="warning">
+                <p><strong>媒体库/新媒体已添加</strong> 勾选起来。现在被emby 刮削成功的剧集电影发送给机器人入库通知后会驱动探测该入库剧集的媒体文件信息，有了媒体信息起播速度才会更快，而且播放器也会播一次获取一次该剧集或电影的媒体信息。</p>
+                <p>（神医助手独占媒体信息提取要关闭，否则播放器播一次探测媒体文件信息和emby通知追更触发媒体信息探测将探测不到）</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <h1>Emby 媒体服务器搭建教程</h1>
+
+        <div class="step">
+            <h2>Emby Docker 运行命令</h2>
+            <p>复制下面的命令到终端执行：</p>
+            <div class="code-block">
+                <button class="copy-btn" onclick="copyCode(this)">复制</button>
+                <pre>docker run -d \
+  --name emby \
+  -e TZ=Asia/Shanghai \
+  -e UID=0 \
+  -e GID=0 \
+  -e GIDLIST=100 \
+  -e HTTP_PROXY=http://192.168.1.1:7890 \
+  -e HTTPS_PROXY=http://192.168.1.1:7890 \
+  -e ALL_PROXY=socks5://192.168.1.1:7890 \
+  -v /volume1/docker/emby/config:/config \
+  -v /volume1/docker/emby-nginx/strm:/strm \
+  -p 8096:8096 \
+  -p 8920:8920 \
+  --restart always \
+  amilys/embyserver:latest</pre>
+            </div>
+            <p>复制上面的命令到终端或者 compose，修改自己的本地路径和修改 clash 代理变量的 ip:7890，复制粘贴回车等待拉取成功，然后地址栏输入你的局域网 ip:8096 进入 emby 开始设置！</p>
+        </div>
+
+        <div class="step">
+            <h2>Emby Docker Compose 配置</h2>
+            <p>或者使用 docker-compose.yml 文件：</p>
+            <div class="code-block">
+                <button class="copy-btn" onclick="copyCode(this)">复制</button>
+                <pre>version: '3.8'
+
+services:
+  emby:
+    image: amilys/embyserver:latest
+    container_name: emby
+    restart: always
+    environment:
+      - TZ=Asia/Shanghai
+      - UID=0
+      - GID=0
+      - GIDLIST=100
+      - HTTP_PROXY=http://192.168.1.1:7890
+      - HTTPS_PROXY=http://192.168.1.1:7890
+      - ALL_PROXY=socks5://192.168.1.1:7890
+    volumes:
+      - /volume1/docker/emby/config:/config
+      - /volume1/docker/emby-nginx/strm:/strm
+    ports:
+      - "8096:8096"  
+      - "8920:8920"  
+    networks:
+      - proxy_network
+
+networks:
+  proxy_network:
+    driver: bridge
+    </pre>
+            </div>
+        </div>
+
+        <div class="step">
+            <h2>设置 Emby</h2>
+            <img src="https://fastly.jsdelivr.net/gh/Yongzz668/image@main/教程图/emby设置1.jpeg" alt="Emby 设置步骤1" class="step-img">
+            <p>1. 简体中文。<br>2. 点击下一步</p>
+            
+            <img src="https://fastly.jsdelivr.net/gh/Yongzz668/image@main/教程图/emby设置2.jpeg" alt="Emby 设置步骤2" class="step-img">
+            <p>3. emby 管理员账号。<br>4. emby 管理员密码，确认密码（记住了）<br>5. 点击下一步</p>
+            
+            <img src="https://fastly.jsdelivr.net/gh/Yongzz668/image@main/教程图/emby设置3.jpeg" alt="Emby 设置步骤3" class="step-img">
+            <p>6. 点击下一步</p>
+            
+            <img src="https://fastly.jsdelivr.net/gh/Yongzz668/image@main/教程图/emby设置4.jpeg" alt="Emby 设置步骤4" class="step-img">
+            <p>7. 找到插件。<br>8. 卸载 OMDb。<br>9. 卸载 tvdb。这 8+9 两个插件没用且会阻碍刮削速度 卸载他们然后重启一下 emby</p>
+            
+            <img src="https://fastly.jsdelivr.net/gh/Yongzz668/image@main/教程图/emby设置6.jpeg" alt="Emby 设置步骤6" class="step-img">
+            <p>10 点击 API 密钥。<br>11 新建一个 API 密钥。（这 10+11 这个步骤是 emby-nginx 教程上 emby 服务器配置部分的附图 2 一样）</p>
+            
+            <img src="https://fastly.jsdelivr.net/gh/Yongzz668/image@main/教程图/emby设置7.jpeg" alt="Emby 设置步骤7" class="step-img">
+            <p>12. 点击媒体库，新建媒体库。<br>13. 选择 strm 所在的文件夹中的你分类好的资源，如图中的: 动画电影。</p>
+            <p>如看不到 strm 文件夹，请看上面 emby 教程开头的所说给 emby 把 strm 文件夹映射进来。</p>
+            
+            <img src="https://fastly.jsdelivr.net/gh/Yongzz668/image@main/教程图/emby设置8.jpeg" alt="Emby 设置步骤8" class="step-img">
+            <p>14. 选择挂载内容类型。<br>15. 你想挂载电影或演唱会文件夹就选红圈中的 "影片"，你想挂载电视剧综艺剧集动漫剧集纪录剧集就选 "电视节目" 如果你想挂载的文件夹里既有电影又有电视剧集你无法整理开两种就挂载 "混合内容" 但不建议这种挂法，会刮削混乱。</p>
+            
+            <img src="https://fastly.jsdelivr.net/gh/Yongzz668/image@main/教程图/emby设置9.jpeg" alt="Emby 设置步骤9" class="step-img">
+            <p>16. 语言和地区 选简体中文，中国，简体中文。</p>
+            
+            <img src="https://fastly.jsdelivr.net/gh/Yongzz668/image@main/教程图/emby设置10.jpeg" alt="Emby 设置步骤10" class="step-img">
+            <p>17. 见到 The Moviedb（tmdb 刮削源）Fanart（精品海报源）一定全部勾选上。</p>
+            
+            <img src="https://fastly.jsdelivr.net/gh/Yongzz668/image@main/教程图/emby设置11.jpeg" alt="Emby 设置步骤11" class="step-img">
+            <p>18. 电视剧就选电视节目，这个文件夹你放的国产剧就给一个目录名字给他。<br>19. 选择对应生成的 strm 存放路径，语言地区选简体中文，中国。</p>
+            
+            <img src="https://fastly.jsdelivr.net/gh/Yongzz668/image@main/教程图/emby设置12.jpeg" alt="Emby 设置步骤12" class="step-img">
+            <p>20. The moviedb（tmdb 刮削源）Fanart（精品海报源）一定全部勾选上。</p>
+            
+            <img src="https://fastly.jsdelivr.net/gh/Yongzz668/image@main/教程图/emby设置13.jpeg" alt="Emby 设置步骤13" class="step-img">
+            <p>21. The moviedb（tmdb 刮削源）Fanart（精品海报源）一定全部勾选上。其他都默认别动，然后保存即可</p>
+            
+            <img src="https://fastly.jsdelivr.net/gh/Yongzz668/image@main/教程图/emby设置14.jpeg" alt="Emby 设置步骤14" class="step-img">
+            <p>22 点开媒体库。看到你挂载的类型文件已经开始在扫描了，就等他扫出海报。<br>23 如果没动就点扫描库文件。如果海报在文件名文件夹名合规的情况下一直刮削不出来，请去搜索一下改 host 或者给 emby 挂梯子的教程，tmdb 节点 emby 无法访问的问题解决就行。</p>
+            
+            <img src="https://fastly.jsdelivr.net/gh/Yongzz668/image@main/教程图/emby成功1.jpeg" alt="Emby 成功示例1" class="step-img">
+            <p>最后耐心把所有你生成的 strm 文件都挂载上就会成类似这样</p>
+            <img src="https://fastly.jsdelivr.net/gh/Yongzz668/image@main/教程图/emby成功2.jpeg" alt="Emby 成功示例2" class="step-img">
+
+            <div class="note">
+                <p>注意: 如果在挂梯成功之后，有的电影电视剧能出海报，有的就不行，怎么办呢？那是一定是你的文件名和文件夹名不标准，标准文件名和文件夹名，可以用智能改名软件挂载 115 网盘来 一键识别改名，最好加入 {tmdb-0000} 这种 tmdb ID 标签。</p>
+                <p>如（<a href="https://apps.apple.com/cn/app/filmix-%E5%85%A8%E8%87%AA%E5%8A%A8%E5%BD%B1%E8%A7%86%E5%BA%93%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7-%E6%92%AD%E6%94%BE%E5%99%A8%E4%BC%B4%E4%BE%A3/id6476475132">Filmix ios 端</a>）设置文件名模板如下</p>
+                <img src="https://fastly.jsdelivr.net/gh/Yongzz668/image@main/教程图/改名软件1.jpeg" alt="改名软件1" class="step-img">
+                <img src="https://fastly.jsdelivr.net/gh/Yongzz668/image@main/教程图/改名软件2.jpeg" alt="改名软件2" class="step-img">
+                <p>把带 tmdb id 的标准文件名都修改好了，会实时生成 strm，等全部刮削完海报，你的 emby 影库就搭建成功了！！！！！</p>
+            </div>
+        </div>
+
+        <div class="step">
+            <h2>挂载给播放器直链播放</h2>
+            <p>首先 emby 的直链播放端口是 7001，有绑定域名的就把这个 7001 给转发映射出去。因为这个 7001 端口就是反代了 emby 原始端口 8096，用这个 7001 端口才能直链播放并且不占用自己的宽带流量。（注意 7001 端口就不要再设置反代访问了，再反代就会可能重复反代播放不了，请用端口转发出去外网播放）</p>
+            <p>网页版 emby 是无法用 7001 反代播放视频的，必须要用播放器连接 emby 播放。</p>
+            <p>打开终端播放器来测试播放一下，播个视频看一下</p>
+            <p>例如:（<a href="https://apps.apple.com/cn/app/vidhub-%E9%AB%98%E6%B8%85%E5%BD%B1%E7%89%87%E8%A7%86%E9%A2%91%E6%92%AD%E6%94%BE%E5%99%A8-%E5%BF%AB%E9%80%9F%E6%92%AD%E6%94%BE%E4%BA%91%E7%9B%98%E7%BD%91%E7%9B%98/id1659622164">vidhub</a>）</p>
+            <img src="https://fastly.jsdelivr.net/gh/Yongzz668/image@main/教程图/直链挂载1.jpeg" alt="直链挂载示例" class="step-img">
+            <p>查看 vidhub 左上角网速很流畅无卡顿普遍到 20-50MB/s 和 emby-nginx 日志 有 115 成功获取直链，确定就是走的直链播放了。</p>
+            <img src="https://fastly.jsdelivr.net/gh/Yongzz668/image@main/教程图/播放界面1.jpeg" alt="播放界面" class="step-img">
+            <img src="https://fastly.jsdelivr.net/gh/Yongzz668/image@main/教程图/直链成功日志.jpeg" alt="直链成功日志" class="step-img">
+        </div>
+
+        <div class="step">
+            <h2>后期更新版本</h2>
+            <p>请安装下面这个一键升级神器，可以保留所有配置和激活信息一键升降版本。做到重新安装不求人！</p>
+            <div class="code-block">
+                <button class="copy-btn" onclick="copyCode(this)">复制</button>
+                <pre>docker run -d \
+  --name dockercopilot \
+  --restart always \
+  --privileged \
+  --network bridge \
+  -p 12712:12712 \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -v /volume1/data:/data \
+  -e TZ=Asia/Shanghai \
+  -e DOCKER_HOST=unix:///var/run/docker.sock \
+  -e secretKey=aa123456 \
+  0nlylty/dockercopilot:latest</pre>
+            </div>
+            <p>或者使用 docker-compose.yml 文件：</p>
+            <div class="code-block">
+                <button class="copy-btn" onclick="copyCode(this)">复制</button>
+                <pre>version: '3.8'
+services:
+  dockercopilot:
+    image: 0nlylty/dockercopilot:latest
+    container_name: dockercopilot
+    restart: always
+    privileged: true
+    network_mode: bridge
+    ports:
+      - "12712:12712"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /volume1/data:/data
+    environment:
+      - TZ=Asia/Shanghai
+      - DOCKER_HOST=unix:///var/run/docker.sock
+      - secretKey=aa123456
+    </pre>
+            </div>
+            <img src="https://fastly.jsdelivr.net/gh/Yongzz668/image@main/教程图/升级工具.jpeg" alt="升级工具" class="step-img">
+            <p>上述命令行里默认设置了一个管理员密码: aa123456</p>
+            <p>1. 点开你要升级的容器，<br>2. 选择版本号 或者 latest<br>3. 点 更新<br>可在进度那看到拉取升级进度条至绿色更新完毕</p>
+        </div>
+
+        <div class="step">
+            <h2>结束语</h2>
+            <p>全部教程结束了！</p>
+            <p>灵魂发问一下，自从折腾这些后，你有多久没静静的享受影视的内容本身了？配置好了后就回归观影享受视觉盛宴吧，回归生活吧！不要被工具浪费太多时间精力了</p>
+        </div>
+    </div>
+
+    <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+        // 复制代码函数
+        function copyCode(button) {
+            const codeBlock = button.parentElement;
+            const code = codeBlock.querySelector('pre')?.textContent || button.previousSibling.textContent;
+            navigator.clipboard.writeText(code).then(() => {
+                button.textContent = '已复制';
+                setTimeout(() => {
+                    button.textContent = '复制';
+                }, 2000);
+            });
+        }
+
+        // 主题切换脚本
+        document.addEventListener('DOMContentLoaded', function() {
+            const themeToggle = document.getElementById('themeToggle');
+            const prefersDarkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+            
+            // 三种主题状态: 'light' | 'dark' | 'starry'
+            const currentTheme = localStorage.getItem('theme') || 
+                                (prefersDarkScheme.matches ? 'dark' : 'light');
+            
+            // 设置初始主题
+            setTheme(currentTheme);
+            
+            themeToggle.addEventListener('click', function() {
+                // 获取当前主题
+                const current = document.body.classList.contains('light-mode') ? 'light' : 
+                                document.body.classList.contains('starry-mode') ? 'starry' : 'dark';
+                
+                // 确定下一个主题
+                let nextTheme;
+                if (current === 'light') {
+                    nextTheme = 'dark';
+                } else if (current === 'dark') {
+                    nextTheme = 'starry';
+                } else {
+                    nextTheme = 'light';
+                }
+                
+                setTheme(nextTheme);
+                localStorage.setItem('theme', nextTheme);
+            });
+
+            function setTheme(theme) {
+                // 清除所有主题类
+                document.body.classList.remove('light-mode', 'starry-mode');
+                
+                // 设置新主题
+                if (theme === 'light') {
+                    document.body.classList.add('light-mode');
+                    themeToggle.textContent = '🌙';
+                } else if (theme === 'starry') {
+                    document.body.classList.add('starry-mode');
+                    themeToggle.textContent = '☀️';
+                } else { // dark
+                    themeToggle.textContent = '✨';
+                }
+            }
+
+            // 根据时间自动切换主题
+            updateThemeBasedOnTime();
+            setInterval(updateThemeBasedOnTime, 60 * 60 * 1000); // 每小时检查一次
+        });
+
+        function updateThemeBasedOnTime() {
+            const now = new Date();
+            const beijingOffset = 8 * 60 * 60 * 1000; // 北京时间偏移
+            const localTime = new Date(now.getTime() + beijingOffset);
+            const hours = localTime.getHours();
+            
+            // 仅在未手动选择主题时自动切换
+            if (!localStorage.getItem('theme')) {
+                const isDayTime = hours >= 6 && hours < 18;
+                const themeToggle = document.getElementById('themeToggle');
+                
+                if (isDayTime) {
+                    setTheme('light');
+                } else if (hours >= 18 && hours < 22) {
+                    setTheme('dark');
+                } else {
+                    setTheme('starry');
+                }
+            }
+        }
+
+        function setTheme(theme) {
+            // 清除所有主题类
+            document.body.classList.remove('light-mode', 'starry-mode');
+            
+            // 设置新主题
+            if (theme === 'light') {
+                document.body.classList.add('light-mode');
+                document.getElementById('themeToggle').textContent = '🌙';
+            } else if (theme === 'starry') {
+                document.body.classList.add('starry-mode');
+                document.getElementById('themeToggle').textContent = '☀️';
+            } else { // dark
+                document.getElementById('themeToggle').textContent = '✨';
+            }
+        }
+    </script>
+    <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'93daa32148cc6767',t:'MTc0Njg5MjY5Ny4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'93e7da717c0abfe0',t:'MTc0NzAzMTI3OC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
